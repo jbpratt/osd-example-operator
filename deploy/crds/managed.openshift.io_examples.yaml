@@ -3,10 +3,10 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
-  name: examples.managed.managed.openshift.io
+    controller-gen.kubebuilder.io/version: v0.16.4
+  name: examples.managed.openshift.io
 spec:
-  group: managed.managed.openshift.io
+  group: managed.openshift.io
   names:
     kind: Example
     listKind: ExampleList
