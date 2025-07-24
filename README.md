@@ -1,58 +1,135 @@
 # osd-example-operator
+// TODO(user): Add simple overview of use/purpose
 
-This repository serves as a test bed for the SD-CICD team to build tooling and
-support operators with minimal impact on other teams
+## Description
+// TODO(user): An in-depth paragraph about your project and overview of use
 
-## Complete SOP on operator test harness
+## Getting Started
 
-https://github.com/openshift/ops-sop/blob/master/v4/howto/osde2e/operator-test-harnesses.md
+### Prerequisites
+- go version v1.24.0+
+- docker version 17.03+.
+- kubectl version v1.11.3+.
+- Access to a Kubernetes v1.11.3+ cluster.
 
-## Locally Running Test Harness
-- Run `make e2e-harness-build`  to make sure harness builds ok
-- Deploy your new version of operator in a test cluster
-- Ensure e2e test scenarios run green on a test cluster using one of the methods below
+### To Deploy on the cluster
+**Build and push your image to the location specified by `IMG`:**
 
-### Using ginkgo
-1. create stage rosa cluster
-2. install ginkgo executable
-3. get kubeadmin credentials from your cluster using
+```sh
+make docker-build docker-push IMG=<some-registry>/osd-example-operator:tag
 ```
-ocm get /api/clusters_mgmt/v1/clusters/$CLUSTER_ID/credentials | jq -r .kubeconfig > /<path-to>/kubeconfig
+
+**NOTE:** This image ought to be published in the personal registry you specified.
+And it is required to have access to pull the image from the working environment.
+Make sure you have the proper permission to the registry if the above commands don’t work.
+
+**Install the CRDs into the cluster:**
+
+```sh
+make install
 ```
-4. Run harness using
+
+**Deploy the Manager to the cluster with the image specified by `IMG`:**
+
+```sh
+make deploy IMG=<some-registry>/osd-example-operator:tag
 ```
-OCM_ENVIRONMENT=stage KUBECONFIG=/<path-to>/kubeconfig  ./<path-to>/bin/ginkgo  --tags=osde2e -v 
+
+> **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
+privileges or be logged in as admin.
+
+**Create instances of your solution**
+You can apply the samples (examples) from the config/sample:
+
+```sh
+kubectl apply -k config/samples/
 ```
-5. This will show test results, but also one execution error due to reporting configs. You can ignore this, or get rid of this, by temporarily removing the `suiteConfig` and `reporterConfig` arguments from `RunSpecs()` function in `osde2e/<operator-name_>test_harness_runner_test.go` file
 
+>**NOTE**: Ensure that the samples has default values to test it out.
 
-### Using osde2e
+### To Uninstall
+**Delete the instances (CRs) from the cluster:**
 
-1. Publish a docker image for the test harness from operator repo using
-   ```
-   HARNESS_IMAGE_REPOSITORY=<your quay HARNESS_IMAGE_REPOSITORY>  HARNESS_IMAGE_NAME=<your quay HARNESS_IMAGE_NAME> make e2e-image-build-push
-   ```
-1. Create a stage rosa cluster
-1. Clone osde2e: `git clone git@github.com:openshift/osde2e.git`
-1. Build osde2e executable: `make build`
-1. Run osde2e
+```sh
+kubectl delete -k config/samples/
+```
 
-  ```bash
-  #!/usr/bin/env bash
-  OCM_TOKEN="[OCM token here]" \ 
-  CLUSTER_ID="[cluster id here]" \
-  AWS_ACCESS_KEY_ID="[aws access key here]" \
-  AWS_SECRET_ACCESS_KEY="[aws access secret here]" \
-  TEST_HARNESSES="quay.io/$HARNESS_IMAGE_REPOSITORY/$HARNESS_IMAGE_NAME" \
-#  Save results in specific local dir 
-  REPORT_DIR="[path to local report directory]" \
-#  OR in s3
-  LOG_BUCKET="[name of the s3 bucket to upload log files to]" \
-  ./out/osde2e test \
-  --configs rosa,stage,sts,test-harness \
-  --skip-must-gather \
-  --skip-destroy-cluster \
-  --skip-health-check
+**Delete the APIs(CRDs) from the cluster:**
 
+```sh
+make uninstall
+```
 
-# debug: trigger pipeline
+**UnDeploy the controller from the cluster:**
+
+```sh
+make undeploy
+```
+
+## Project Distribution
+
+Following the options to release and provide this solution to the users.
+
+### By providing a bundle with all YAML files
+
+1. Build the installer for the image built and published in the registry:
+
+```sh
+make build-installer IMG=<some-registry>/osd-example-operator:tag
+```
+
+**NOTE:** The makefile target mentioned above generates an 'install.yaml'
+file in the dist directory. This file contains all the resources built
+with Kustomize, which are necessary to install this project without its
+dependencies.
+
+2. Using the installer
+
+Users can just run 'kubectl apply -f <URL for YAML BUNDLE>' to install
+the project, i.e.:
+
+```sh
+kubectl apply -f https://raw.githubusercontent.com/<org>/osd-example-operator/<tag or branch>/dist/install.yaml
+```
+
+### By providing a Helm Chart
+
+1. Build the chart using the optional helm plugin
+
+```sh
+operator-sdk edit --plugins=helm/v1-alpha
+```
+
+2. See that a chart was generated under 'dist/chart', and users
+can obtain this solution from there.
+
+**NOTE:** If you change the project, you need to update the Helm Chart
+using the same command above to sync the latest changes. Furthermore,
+if you create webhooks, you need to use the above command with
+the '--force' flag and manually ensure that any custom configuration
+previously added to 'dist/chart/values.yaml' or 'dist/chart/manager/manager.yaml'
+is manually re-applied afterwards.
+
+## Contributing
+// TODO(user): Add detailed information on how you would like others to contribute to this project
+
+**NOTE:** Run `make help` for more information on all potential `make` targets
+
+More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
+
+## License
+
+Copyright 2025.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
